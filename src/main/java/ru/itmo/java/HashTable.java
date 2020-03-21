@@ -5,15 +5,18 @@ import java.util.Map;
 import static java.lang.Math.abs;
 
 public class HashTable {
+    private static final int DEFAULT_LENGTH = 4;
+    private static final double DEFAULT_LOAD_FACTOR = 0.5;
+
     private Entry[] array;
     private double loadFactor;
     private int threshold;
     private int size;
 
     public HashTable() {
-        array = new Entry[4];
-        loadFactor = 0.5;
-        threshold = 2;
+        array = new Entry[DEFAULT_LENGTH];
+        loadFactor = DEFAULT_LOAD_FACTOR;
+        threshold = (int) (DEFAULT_LENGTH * DEFAULT_LOAD_FACTOR);
         size = 0;
     }
 
@@ -60,7 +63,7 @@ public class HashTable {
                 index %= array.length;
             }
         }
-        if (array[index] == null || array[index].deleted) {
+        if (!elementExists(index)) {
             array[index] = new Entry(key, value);
             size++;
             if (size >= threshold) {
@@ -74,7 +77,7 @@ public class HashTable {
 
     public Object get(Object key) {
         int index = getIndex(key);
-        if (array[index] == null || array[index].deleted || !key.equals(array[index].key)) {
+        if (!elementExists(index) || !key.equals(array[index].key)) {
             return null;
         }
         return array[index].value;
@@ -82,7 +85,7 @@ public class HashTable {
 
     public Object remove(Object key) {
         int index = getIndex(key);
-        if (array[index] == null || array[index].deleted || !key.equals(array[index].key)) {
+        if (!elementExists(index) || !key.equals(array[index].key)) {
             return null;
         }
         size--;
@@ -95,7 +98,7 @@ public class HashTable {
         threshold = (int) (len * 2 * loadFactor);
         Entry[] tmpArray = new Entry[len];
         for (int i = 0; i < len; i++) {
-            if (array[i] != null && !array[i].deleted) {
+            if (elementExists(i)) {
                 tmpArray[i] = new Entry(array[i].key, array[i].value);
             }
         }
@@ -109,13 +112,17 @@ public class HashTable {
         size = backupSize;
     }
 
+    public boolean elementExists(int index) {
+        return array[index] != null && !array[index].deleted;
+    }
+
     public static class Entry {
         private Object key;
         private Object value;
         private boolean deleted;
 
 
-        public Entry (Object initKey, Object initValue) {
+        public Entry(Object initKey, Object initValue) {
             key = initKey;
             value = initValue;
             deleted = false;

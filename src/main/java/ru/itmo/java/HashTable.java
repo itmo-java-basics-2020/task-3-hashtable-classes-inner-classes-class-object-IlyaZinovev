@@ -2,8 +2,6 @@ package ru.itmo.java;
 
 import java.util.Map;
 
-import static java.lang.Math.abs;
-
 public class HashTable {
     private static final int DEFAULT_LENGTH = 4;
     private static final double DEFAULT_LOAD_FACTOR = 0.5;
@@ -14,21 +12,18 @@ public class HashTable {
     private int size;
 
     public HashTable() {
-        array = new Entry[DEFAULT_LENGTH];
-        loadFactor = DEFAULT_LOAD_FACTOR;
-        threshold = (int) (DEFAULT_LENGTH * DEFAULT_LOAD_FACTOR);
-        size = 0;
+        this(DEFAULT_LENGTH, DEFAULT_LOAD_FACTOR);
     }
 
     public HashTable(int startLength) {
-        array = new Entry[startLength];
-        loadFactor = 0.5;
-        threshold = (int) (startLength * loadFactor);
-        size = 0;
+        this(startLength, DEFAULT_LOAD_FACTOR);
     }
 
     public HashTable(int startLength, double myLoadFactor) {
         array = new Entry[startLength];
+        for (int i = 0; i < startLength; i++) {
+            array[i] = Entry.NULL_ELEMENT;
+        }
         loadFactor = myLoadFactor;
         threshold = (int) (startLength * loadFactor);
         size = 0;
@@ -39,17 +34,14 @@ public class HashTable {
     }
 
     public int getHash(Object key) {
-        return abs(key.hashCode()) % array.length;
+        return java.lang.Math.abs(key.hashCode()) % array.length;
     }
 
     public int getIndex(Object key) {
         int result = getHash(key);
-        while (array[result] != null && !key.equals(array[result].key)) {
+        while (array[result].Exists() && !key.equals(array[result].key)) {
             result++;
             result %= array.length;
-            if (result == getHash(key)) {
-                return result;
-            }
         }
         return result;
     }
@@ -57,13 +49,7 @@ public class HashTable {
     public Object put(Object key, Object value) {
         Object prev = get(key);
         int index = getIndex(key);
-        if (array[index] != null && !key.equals(array[index].key)) {
-            while (!array[index].deleted) {
-                index++;
-                index %= array.length;
-            }
-        }
-        if (!elementExists(index)) {
+        if (!array[index].Exists()) {
             array[index] = new Entry(key, value);
             size++;
             if (size >= threshold) {
@@ -77,32 +63,33 @@ public class HashTable {
 
     public Object get(Object key) {
         int index = getIndex(key);
-        if (!elementExists(index) || !key.equals(array[index].key)) {
-            return null;
-        }
         return array[index].value;
     }
 
     public Object remove(Object key) {
         int index = getIndex(key);
-        if (!elementExists(index) || !key.equals(array[index].key)) {
+        if (!array[index].Exists()) {
             return null;
         }
         size--;
-        array[index].deleted = true;
-        return array[index].value;
+        Object result = array[index].value;
+        array[index] = Entry.NULL_ELEMENT;
+        return result;
     }
 
-    public void increaseLength() {
+    private void increaseLength() {
         int len = array.length;
         threshold = (int) (len * 2 * loadFactor);
         Entry[] tmpArray = new Entry[len];
         for (int i = 0; i < len; i++) {
-            if (elementExists(i)) {
+            if (array[i].Exists()) {
                 tmpArray[i] = new Entry(array[i].key, array[i].value);
             }
         }
         array = new Entry[len * 2];
+        for (int i = 0; i < len * 2; i++) {
+            array[i] = Entry.NULL_ELEMENT;
+        }
         int backupSize = size;
         for (int i = 0; i < len; i++) {
             if (tmpArray[i] != null) {
@@ -112,20 +99,18 @@ public class HashTable {
         size = backupSize;
     }
 
-    public boolean elementExists(int index) {
-        return array[index] != null && !array[index].deleted;
-    }
-
     public static class Entry {
         private Object key;
         private Object value;
-        private boolean deleted;
-
+        private static final Entry NULL_ELEMENT = new Entry(null, null);
 
         public Entry(Object initKey, Object initValue) {
             key = initKey;
             value = initValue;
-            deleted = false;
         }
-    }
+
+        public boolean Exists() {
+            return this != NULL_ELEMENT;
+        }
+        }
 }

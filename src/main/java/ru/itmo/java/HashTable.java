@@ -21,9 +21,6 @@ public class HashTable {
 
     public HashTable(int startLength, double myLoadFactor) {
         array = new Entry[startLength];
-        for (int i = 0; i < startLength; i++) {
-            array[i] = Entry.NULL_ELEMENT;
-        }
         loadFactor = myLoadFactor;
         threshold = (int) (startLength * loadFactor);
         size = 0;
@@ -37,19 +34,39 @@ public class HashTable {
         return java.lang.Math.abs(key.hashCode()) % array.length;
     }
 
-    public int getIndex(Object key) {
-        int result = getHash(key);
-        while (array[result].Exists() && !key.equals(array[result].key)) {
+    public int getIndex(Object key, boolean searchDeleted) {
+        int startIndex = getHash(key);
+        int result = startIndex;
+        while (array[result] != null && !key.equals(array[result].key)) {
             result++;
             result %= array.length;
+            if (result == startIndex) {
+                break;
+            }
+        }
+        if (array[result] == null || key.equals(array[result].key)) {
+            return result;
+        }
+        if (searchDeleted) {
+            while (array[result] != Entry.DELETED_ELEMENT) {
+                result++;
+                result %= array.length;
+                if (result == startIndex) {
+                    break;
+                }
+            }
         }
         return result;
     }
 
     public Object put(Object key, Object value) {
         Object prev = get(key);
-        int index = getIndex(key);
-        if (!array[index].Exists()) {
+        int index = getIndex(key, true);
+        if (exists(index) && !key.equals(array[index].key)) {
+            increaseLength();
+            index = getIndex(key, true);
+        }
+        if (!exists(index)) {
             array[index] = new Entry(key, value);
             size++;
             if (size >= threshold) {
@@ -62,18 +79,21 @@ public class HashTable {
     }
 
     public Object get(Object key) {
-        int index = getIndex(key);
+        int index = getIndex(key, false);
+        if (!exists(index) || !key.equals(array[index].key)) {
+            return null;
+        }
         return array[index].value;
     }
 
     public Object remove(Object key) {
-        int index = getIndex(key);
-        if (!array[index].Exists()) {
+        int index = getIndex(key, false);
+        if (!exists(index) || !key.equals(array[index].key)) {
             return null;
         }
         size--;
         Object result = array[index].value;
-        array[index] = Entry.NULL_ELEMENT;
+        array[index] = Entry.DELETED_ELEMENT;
         return result;
     }
 
@@ -82,14 +102,11 @@ public class HashTable {
         threshold = (int) (len * 2 * loadFactor);
         Entry[] tmpArray = new Entry[len];
         for (int i = 0; i < len; i++) {
-            if (array[i].Exists()) {
+            if (exists(i)) {
                 tmpArray[i] = new Entry(array[i].key, array[i].value);
             }
         }
         array = new Entry[len * 2];
-        for (int i = 0; i < len * 2; i++) {
-            array[i] = Entry.NULL_ELEMENT;
-        }
         int backupSize = size;
         for (int i = 0; i < len; i++) {
             if (tmpArray[i] != null) {
@@ -99,18 +116,18 @@ public class HashTable {
         size = backupSize;
     }
 
+    private boolean exists(int index) {
+        return array[index] != null && array[index] != Entry.DELETED_ELEMENT;
+    }
+
     public static class Entry {
         private Object key;
         private Object value;
-        private static final Entry NULL_ELEMENT = new Entry(null, null);
+        private static final Entry DELETED_ELEMENT = new Entry(null, null);
 
         public Entry(Object initKey, Object initValue) {
             key = initKey;
             value = initValue;
         }
-
-        public boolean Exists() {
-            return this != NULL_ELEMENT;
-        }
-        }
+    }
 }

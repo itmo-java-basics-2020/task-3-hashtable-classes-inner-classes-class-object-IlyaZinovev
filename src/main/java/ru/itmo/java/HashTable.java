@@ -48,7 +48,7 @@ public class HashTable {
             return result;
         }
         if (searchDeleted) {
-            while (array[result] != Entry.DELETED_ELEMENT) {
+            while (!array[result].deleted) {
                 result++;
                 result %= array.length;
                 if (result == startIndex) {
@@ -93,7 +93,8 @@ public class HashTable {
         }
         size--;
         Object result = array[index].value;
-        array[index] = Entry.DELETED_ELEMENT;
+        array[index].value = null;
+        array[index].deleted = true;
         return result;
     }
 
@@ -117,17 +118,18 @@ public class HashTable {
     }
 
     private boolean exists(int index) {
-        return array[index] != null && array[index] != Entry.DELETED_ELEMENT;
+        return array[index] != null && !array[index].deleted;
     }
 
     public static class Entry {
         private Object key;
         private Object value;
-        private static final Entry DELETED_ELEMENT = new Entry(null, null);
+        private boolean deleted;
 
         public Entry(Object initKey, Object initValue) {
             key = initKey;
             value = initValue;
+            deleted = false;
         }
     }
 }
